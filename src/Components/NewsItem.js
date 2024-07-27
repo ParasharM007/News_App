@@ -10,7 +10,7 @@ export class NewsItem extends Component {
         <span className="position-absolute top-0 translate-middle badge rounded-pill bg-black "style={{left:'90%',zIndex:'1'}}>
        {source}
    </span>
-          <img src={!ImgUrl?"https://cdn.abcotvs.com/dip/images/14526330_target-self-checkout-AP-clean-TN-img.jpg?w=1600":ImgUrl} alt="..." />
+          <img src={!ImgUrl?"https://upload.wikimedia.org/wikipedia/commons/d/d1/Image_not_available.png":ImgUrl} alt="..." />
           <div className="card-body">
             <h5 className="card-title">{title}
             </h5>
