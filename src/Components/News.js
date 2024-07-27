@@ -5,121 +5,109 @@ import PropTypes from 'prop-types';
 
 export class News extends Component {
   static defaultProps = {
-    country:"in",
+    country: "in",
     pagesize: 12,
-    category:"general"
-};
-static propTypes={
-  country: PropTypes.string,
-  pagesize: PropTypes.number,
-  category: PropTypes.string
-}
-capitalizeFirstLetter=(string) => {
-  return string.charAt(0).toUpperCase()+string.slice(1);
-}
+    category: "general"
+  };
+
+  static propTypes = {
+    country: PropTypes.string,
+    pagesize: PropTypes.number,
+    category: PropTypes.string
+  };
+
+  capitalizeFirstLetter = (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
 
   constructor(props) {
     super(props);
- 
 
+    document.title = `${this.capitalizeFirstLetter(this.props.category)} - InsightDaily`;
 
-    document.title = `${this.capitalizeFirstLetter(this.props.category)}-InsightDaily`
-   
-    console.log("hi i am constructor from news component");
     this.state = {
       articles: [],
       loading: false,
-      page: 1
+      page: 1,
+      totalResults: 0,
+
     };
   }
 
   async componentDidMount() {
-    let url =
-    `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=346a7273c1014bdd95f9a8345394e184&page=1&pagesize=${this.props.pagesize}`;
-    this.setState({
-      loading: true,
-    })
-  let data = await fetch(url);
-  let parseData = await data.json();
-  console.log(parseData);
-  this.setState({ articles: parseData.articles,
-  totalResults: parseData.totalResults,
-  loading: false
-  
+    this.fetchArticles();
   }
-    
-    );
-  }
-  handleNextClick = async() => {
-    
-   if(!(this.state.page+1>Math.ceil(this.state.totalResults/this.props.pagesize))){
 
+  fetchArticles = async () => {
+    const { country, category, pagesize } = this.props;
+    const apiKey=process.env.REACT_APP_API_KEY;
+    let url = `https://newsapi.org/v2/top-headlines?country=${country}&category=${category}&apiKey=${apiKey}&page=${this.state.page}&pagesize=${pagesize}`;
 
-    let url =
-      `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=346a7273c1014bdd95f9a8345394e184&page=${this.state.page+1}&pagesize=${this.props.pagesize}`;
-      this.setState({
-        loading: true,
-      })
-    let data = await fetch(url);
-    let parseData = await data.json();
-    console.log(parseData);
-    this.setState(
-      { 
-        page:this.state.page+1,
-        articles: parseData.articles,
-        loading:false
+    try {
+      this.setState({ 
+      loading: true
+     });
+      let data = await fetch(url);
+      let parseData = await data.json();
+
+      if (parseData.status !== "ok") {
+        throw new Error(parseData.message);
       }
-    )
-   
+
+      this.setState({
+        articles: parseData.articles,
+        totalResults: parseData.totalResults,
+        loading: false
+      });
+    } catch (error) {
+      console.error("Error fetching articles:", error);
+      this.setState({ 
+        loading: false
+       });
     }
-  }
-  handlePrevClick =async () => {
-   
-    let url =
-    `https://newsapi.org/v2/top-headlines?country=${this.props.country}&category=${this.props.category}&apiKey=346a7273c1014bdd95f9a8345394e184&page=${this.state.page-1}&pagesize=${this.props.pagesize}`;
-    this.setState({
-      loading: true,
-    })
-  let data = await fetch(url);
-  let parseData = await data.json();
-  console.log(parseData);
-  this.setState(
-    { 
-      page:this.state.page-1,
-      articles: parseData.articles,
-      loading: false,
-    }
-  )
   };
+
+  handleNextClick = async () => {
+    if (!(this.state.page + 1 > Math.ceil(this.state.totalResults / this.props.pagesize))) {
+      await this.setState((prevState) => ({ page: prevState.page + 1 }));
+      this.fetchArticles();
+    }
+  };
+
+  handlePrevClick = async () => {
+    await this.setState((prevState) => ({ page: prevState.page - 1 }));
+    this.fetchArticles();
+  };
+
   render() {
-    console.log("render");
+    const { articles, loading, page } = this.state;
+    const { category, pagesize } = this.props;
+
     return (
       <div>
         <div className="container my-4">
-<h1 className="text-center" style={{margin:"35px"}}>InsightDaily-Top {this.capitalizeFirstLetter(this.props.category)} Headlines</h1>
-         {this.state.loading&&<Spinner/>}
+          <h1 className="text-center" style={{ margin: "35px" }}>
+            InsightDaily - Top {this.capitalizeFirstLetter(category)} Headlines
+          </h1>
+          {loading && <Spinner />}
           <div className="row">
-            {!this.state.loading && this.state.articles.map((element) => {
-              return (
-                <div className="col-md-4" key={element.url}>
-                  <NewsItem
-                    // title={element.title.slice(0,45)}
-                    // description={element.description.slice(0,88)}
-                    title={element.title ? element.title : ""}
-                    description={element.description ? element.description : ""}
-                    ImgUrl={element.urlToImage}
-                    newsUrl={element.url}
-                    author={element.author? element.author:"unknown"}
-                    date={element.publishedAt}
-                    source={element.source.name}
-                  />
-                </div>
-              );
-            })}
+            {!loading && articles.map((element) => (
+              <div className="col-md-4" key={element.url}>
+                <NewsItem
+                  title={element.title ? element.title : ""}
+                  description={element.description ? element.description : ""}
+                  ImgUrl={element.urlToImage}
+                  newsUrl={element.url}
+                  author={element.author ? element.author : "unknown"}
+                  date={element.publishedAt}
+                  source={element.source.name}
+                />
+              </div>
+            ))}
           </div>
           <div className="container d-flex justify-content-between">
             <button
-              disabled={this.state.page <= 1}
+              disabled={page <= 1}
               type="button"
               className="btn btn-secondary"
               onClick={this.handlePrevClick}
@@ -127,7 +115,7 @@ capitalizeFirstLetter=(string) => {
               &larr; Previous
             </button>
             <button
-              disabled={this.state.page+1>Math.ceil(this.state.totalResults/this.props.pagesize)}
+              disabled={page + 1 > Math.ceil(this.state.totalResults / pagesize)}
               type="button"
               className="btn btn-secondary"
               onClick={this.handleNextClick}
